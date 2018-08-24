@@ -19,37 +19,39 @@ void setup()
   setupDriveWheel();
   setupLift();
   homeLift();
+  demo();
 }
 
 void loop()
 {
-  //driveWheelDemo();
-  //Serial.println("home: " + String(readHomeSwitch()));
+}
+
+float cap(float value, float miin, float maax) {
+  if (value < miin) return miin;
+  else if (value > maax) return maax;
+  else return value;
 }
 
 void homeLift() {
   liftDown(150);
   while (!readHomeSwitch());
   liftUp(100);
-  delay(10);
+  delay(10); // Debounce noisy switch
   while (readHomeSwitch());
   liftStop();
 }
 
 void liftStop() {
-  Serial.println("stop");
   analogWrite(PIN_LIFT_DOWN, 0);
   analogWrite(PIN_LIFT_UP, 0);
 }
 
 void liftUp(int pwm) {
-  Serial.println("up");
   analogWrite(PIN_LIFT_DOWN, 0);
   analogWrite(PIN_LIFT_UP, pwm);
 }
 
 void liftDown(int pwm) {
-  Serial.println("down");
   analogWrite(PIN_LIFT_UP, 0);
   analogWrite(PIN_LIFT_DOWN, pwm);
 }
@@ -70,22 +72,54 @@ void setupDriveWheel() {
   dxl_wb.wheelMode(DXL_DRIVE_ID);
 }
 
-void driveWheelDemo() {
-  int full = 4094;
-  int middle = full / 2;
-  
-  dxl_wb.goalPosition(DXL_STEER_ID, middle - middle/3);
-  dxl_wb.goalSpeed(DXL_DRIVE_ID, 300);
+void setSteer(float steer) {
+  steer = cap(steer, -1, 1);
+  const int HALF = 4094 / 2;
+  const int QUARTER = HALF / 2;
+  const int STRIGHT = HALF - 65; // encoder has slight offset
+  dxl_wb.goalPosition(DXL_STEER_ID, STRIGHT + QUARTER * steer);
+}
 
-  delay(1000);
-
-  dxl_wb.goalPosition(DXL_STEER_ID, middle + middle/3);
-  dxl_wb.goalSpeed(DXL_DRIVE_ID, -300);
-
-  delay(1000);
+void setDriveSpeed(float speed) {
+  speed = cap(speed, -1, 1);
+  const int MAX_SPEED = 300;
+  dxl_wb.goalSpeed(DXL_DRIVE_ID, MAX_SPEED * speed * -1);
 }
 
 bool readHomeSwitch() {
   return !digitalRead(PIN_HOME_SWITCH);
 }
+
+void demo() {
+  setSteer(0);
+  delay(1000);
+  setDriveSpeed(0.5);
+  delay(2500);
+  setDriveSpeed(0);
+  delay(1000);
+  setDriveSpeed(-0.25);
+  delay(2500*2);
+  setDriveSpeed(0.0);
+  delay(1000);
+  liftUp(200);
+  delay(1000);
+  liftStop();
+  delay(1000);
+  setSteer(1.0);
+  setDriveSpeed(-1.0);
+  delay(3000);
+  setSteer(0.0);
+  delay(1000);
+  setSteer(-0.5);
+  delay(2000);
+  setSteer(0.0);
+  setDriveSpeed(0.0);
+  delay(1000);
+  homeLift();
+  setDriveSpeed(0.5);
+  delay(3000);
+  setDriveSpeed(0.0);
+}
+
+
 
